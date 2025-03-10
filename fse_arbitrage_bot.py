@@ -171,7 +171,7 @@ def arbitrage_bot(initial_capital, arbitrage_threshold, trading_session_duration
         percentage_diff = (price_diff / avg_price) * 100
         
         # Log the price comparison
-        logging.info(f"Time: {elapsed:.1f}s - {exchange1}: ${price1:.2f}, {exchange2}: ${price2:.2f}, Diff: ${price_diff:.2f} ({percentage_diff:.2f}%)")
+        logging.info(f"Time: {elapsed:.1f}s - {exchange1}: ${price1:.3f}, {exchange2}: ${price2:.3f}, Diff: ${price_diff:.3f} ({percentage_diff:.2f}%)")
         
         # Record data for visualization
         time_points.append(elapsed)
@@ -208,7 +208,7 @@ def arbitrage_bot(initial_capital, arbitrage_threshold, trading_session_duration
             trade_count += 1
             
             # Record trade
-            trade_summary = f"[Time: {elapsed:.1f}s] ARBITRAGE OPPORTUNITY: {buy_exchange}(${buy_price:.2f}) -> {sell_exchange}(${sell_price:.2f}), Diff: ${price_diff:.2f} ({percentage_diff:.2f}%), Units: {amount:.2f}, Profit: ${trade_profit:.2f}, Capital: ${capital:.2f}"
+            trade_summary = f"[Time: {elapsed:.1f}s] ARBITRAGE OPPORTUNITY: {buy_exchange}(${buy_price:.3f}) -> {sell_exchange}(${sell_price:.3f}), Diff: ${price_diff:.3f} ({percentage_diff:.2f}%), Units: {amount:.2f}, Profit: ${trade_profit:.2f}, Capital: ${capital:.2f}"
             trades.append(trade_summary)
             logging.info(trade_summary)
             

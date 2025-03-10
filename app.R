@@ -119,13 +119,13 @@ server <- function(input, output, session) {
     invalidateLater(1000, session)
     
     # Update countdown if trading is running
-    if (trading_running() && countdown_time() > 0) {
-      countdown_time(countdown_time() - 1)
-      output$trading_status <- renderText("Trading...")
-    } else if (trading_running() && countdown_time() <= 0) {
-      trading_running(FALSE)
-      output$trading_status <- renderText("Trading complete.")
-    }
+    # if (trading_running() && countdown_time() > 0) {
+    #   countdown_time(countdown_time() - 1)
+    #   output$trading_status <- renderText("Trading...")
+    # } else if (trading_running() && countdown_time() <= 0) {
+    #   trading_running(FALSE)
+    #   output$trading_status <- renderText("Trading complete.")
+    # }
     
     # Try to load trade data if file exists and we're running
     if (nchar(current_files$data_file) > 0 && file.exists(current_files$data_file)) {
@@ -275,8 +275,8 @@ server <- function(input, output, session) {
     
     # Create base ggplot
     p <- ggplot(df, aes(x = Time)) +
-      geom_line(aes(y = Exchange1_Price, color = input$exchange_1), size = 1) +
-      geom_line(aes(y = Exchange2_Price, color = input$exchange_2), size = 1) +
+      geom_line(aes(y = Exchange1_Price, color = input$exchange_1), linewidth = 1) +
+      geom_line(aes(y = Exchange2_Price, color = input$exchange_2), linewidth = 1) +
       labs(
         title = paste("Price Comparison:", input$exchange_1, "vs", input$exchange_2),
         x = paste0("Time (", input$duration_unit, ")"),
@@ -288,7 +288,7 @@ server <- function(input, output, session) {
     # Add points for executed trades
     trades <- subset(df, Trade_Executed == "Yes")
     if (nrow(trades) > 0) {
-      p <- geom_point(data = trades, aes(y = Exchange1_Price), size = 3) +
+      p <- p + geom_point(data = trades, aes(y = Exchange1_Price), size = 3) +
         geom_point(data = trades, aes(y = Exchange2_Price), size = 3)
     }
     
