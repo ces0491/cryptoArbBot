@@ -3,6 +3,7 @@ import random
 import logging
 import pandas as pd
 import requests
+import numpy as np
 from datetime import datetime
 
 # Global variables
@@ -21,16 +22,6 @@ EXCHANGE_APIS = {
     "Bitfinex": "https://api-pub.bitfinex.com/v2/ticker/t"
 }
 
-
-# handler and logging config
-handler = logging.FileHandler(log_file)
-handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
-
-logger.info("Starting trading bot...")
-
 # Helper function to adjust Binance trading pairs
 def format_binance_pair(trading_pair):
     base, quote = trading_pair.split("/")
@@ -38,12 +29,109 @@ def format_binance_pair(trading_pair):
         quote = "USDT"  # Binance primarily uses USDT
     return f"{base}{quote}"  # Binance API format (e.g., XRPUSDT)
 
-# Function to fetch market data
-def get_price(exchange, trading_pair, simulate_data):
+# Modified random walk to attempt to replicate asset price movements over very short periods of just a few seconds
+class ShortTermPriceSimulator:
+    def __init__(self, 
+                 starting_price = 100, 
+                 volatility = 0.05, 
+                 mean_reversion = 0.1,
+                 oscillation_amplitude = 0.3, 
+                 oscillation_period = 20, 
+                 divergence_factor = 0.2):
+        self.current_price = starting_price
+        self.base_price = starting_price
+        self.volatility = volatility  # Exaggerated volatility for short timeframes
+        self.mean_reversion = mean_reversion  # Strength of pull back to base price
+        self.oscillation_amplitude = oscillation_amplitude  # Size of cyclic movements
+        self.oscillation_period = oscillation_period  # Length of cycle in seconds
+        self.divergence_factor = divergence_factor  # How strongly this exchange diverges from the other
+        self.shock_probability = 0.05  # % chance of price shock each second - we define this here since price shocks should affect both exchanges equally (macro factor)
+        self.time_counter = 0  # Counter to track time for oscillations
+        
+    def next_price(self, other_price=None):
+        self.time_counter += 1
+        
+        # Random component (larger for short timeframes)
+        random_change = random.normalvariate(0, 1) * self.volatility
+        
+        # Mean reversion component (pulls price back toward base_price)
+        reversion = self.mean_reversion * (self.base_price - self.current_price) / self.base_price
+        
+        # Oscillation component (creates cyclic movements)
+        oscillation = self.oscillation_amplitude * np.sin(2 * np.pi * self.time_counter / self.oscillation_period)
+        
+        # Occasional price shocks
+        shock = 0
+        if random.random() < self.shock_probability:
+            shock = random.choice([-1, 1]) * random.uniform(0.2, 0.7)
+            
+        # Divergence from other exchange (if provided)
+        divergence = 0
+        if other_price is not None:
+            # Occasionally create deliberate divergence from other exchange
+            if random.random() < 0.1:  # 10% chance to start diverging
+                divergence = self.divergence_factor * (self.current_price - other_price) / self.current_price
+        
+        # Calculate total percentage change
+        total_change = random_change + reversion + oscillation + shock + divergence
+        
+        # Apply change to current price
+        self.current_price *= (1 + total_change)
+        
+        # Ensure price doesn't go negative or explode
+        self.current_price = max(self.current_price, self.base_price * 0.7)
+        self.current_price = min(self.current_price, self.base_price * 1.3)
+        
+        return round(self.current_price, 4)
+
+# Function to fetch market data or simulate it
+def get_price(exchange, trading_pair, simulate_data, simulators={}, last_prices={}):
     if simulate_data:
-        base_price = 100  # Set base price for asset to randomly vary prices about
-        variation = random.uniform(0.95, 1.05) # Add small variation between exchanges +-5% from base
-        return round(base_price * variation, 2)
+        # Create simulator for this exchange if it doesn't exist
+        key = f"{exchange}_{trading_pair}"
+        if key not in simulators:
+            # Base price with slight variation
+            base_price = 100
+            
+            # Different parameters for different exchanges
+            if exchange == exchange1:  # First exchange
+                starting_price = base_price * random.uniform(0.98, 1.02)
+                volatility = random.uniform(0.02, 0.04)
+                mean_reversion = random.uniform(0.05, 0.1)
+                oscillation_amplitude = random.uniform(0.1, 0.2)
+                oscillation_period = random.randint(15, 25)  # Seconds
+                divergence_factor = random.uniform(0.1, 0.3)
+            else:  # Second exchange
+                starting_price = base_price * random.uniform(0.97, 1.03)  # Slightly more variance
+                volatility = random.uniform(0.03, 0.06)  # Higher volatility
+                mean_reversion = random.uniform(0.03, 0.08)  # Less mean reversion
+                oscillation_amplitude = random.uniform(0.15, 0.25)  # Larger oscillations
+                oscillation_period = random.randint(10, 20)  # Different cycle
+                divergence_factor = random.uniform(0.2, 0.4)  # Stronger divergence from exchange 1
+                
+            simulators[key] = ShortTermPriceSimulator(
+                starting_price, 
+                volatility,
+                mean_reversion,
+                oscillation_amplitude,
+                oscillation_period,
+                divergence_factor
+            )
+        
+        # Get other exchange's last price if available for coordinated movements
+        other_price = None
+        other_exchange = exchange2 if exchange == exchange1 else exchange1
+        other_key = f"{other_exchange}_{trading_pair}"
+        if other_key in last_prices:
+            other_price = last_prices[other_key]
+            
+        # Get new price
+        new_price = simulators[key].next_price(other_price)
+        
+        # Store this price for reference by other exchange
+        last_prices[key] = new_price
+        
+        return new_price
     else:
         try:
             if exchange == "Binance":
@@ -119,10 +207,6 @@ def arbitrage_bot(initial_capital, arbitrage_threshold, trading_session_duration
         format="%(asctime)s - %(message)s", 
         force=True
     )
-
-    logging.info(trade_summary)
-    logging.info("Trading session ended.")
-    logging.info(summary_output)
     
     # Convert duration to seconds
     duration_in_seconds = convert_to_seconds(trading_session_duration, duration_unit)
@@ -150,15 +234,19 @@ def arbitrage_bot(initial_capital, arbitrage_threshold, trading_session_duration
     profits = 0
     trade_count = 0
     
+    # Create price simulators and last prices dictionaries
+    simulators = {}
+    last_prices = {}
+    
     # Loop for the duration of trading session
     elapsed = 0
     while elapsed < duration_in_seconds:
         current_time = time.time()
         elapsed = current_time - start_time
         
-        # Get prices from exchanges
-        price1 = get_price(exchange1, trading_pair, simulate_data)
-        price2 = get_price(exchange2, trading_pair, simulate_data)
+        # Get prices from exchanges - using our enhanced simulators if simulate_data is True
+        price1 = get_price(exchange1, trading_pair, simulate_data, simulators, last_prices)
+        price2 = get_price(exchange2, trading_pair, simulate_data, simulators, last_prices)
 
         if price1 is None or price2 is None:
             logging.warning(f"Could not fetch price from one or both exchanges. {exchange1}: {price1}, {exchange2}: {price2}")
@@ -171,7 +259,7 @@ def arbitrage_bot(initial_capital, arbitrage_threshold, trading_session_duration
         percentage_diff = (price_diff / avg_price) * 100
         
         # Log the price comparison
-        logging.info(f"Time: {elapsed:.1f}s - {exchange1}: ${price1:.3f}, {exchange2}: ${price2:.3f}, Diff: ${price_diff:.3f} ({percentage_diff:.2f}%)")
+        logging.info(f"Time: {elapsed:.1f}s - {exchange1}: ${price1:.4f}, {exchange2}: ${price2:.4f}, Diff: ${price_diff:.4f} ({percentage_diff:.2f}%)")
         
         # Record data for visualization
         time_points.append(elapsed)
@@ -208,7 +296,7 @@ def arbitrage_bot(initial_capital, arbitrage_threshold, trading_session_duration
             trade_count += 1
             
             # Record trade
-            trade_summary = f"[Time: {elapsed:.1f}s] ARBITRAGE OPPORTUNITY: {buy_exchange}(${buy_price:.3f}) -> {sell_exchange}(${sell_price:.3f}), Diff: ${price_diff:.3f} ({percentage_diff:.2f}%), Units: {amount:.2f}, Profit: ${trade_profit:.2f}, Capital: ${capital:.2f}"
+            trade_summary = f"[Time: {elapsed:.1f}s] ARBITRAGE OPPORTUNITY: {buy_exchange}(${buy_price:.4f}) -> {sell_exchange}(${sell_price:.4f}), Diff: ${price_diff:.4f} ({percentage_diff:.2f}%), Units: {amount:.4f}, Profit: ${trade_profit:.2f}, Capital: ${capital:.2f}"
             trades.append(trade_summary)
             logging.info(trade_summary)
             
@@ -218,7 +306,7 @@ def arbitrage_bot(initial_capital, arbitrage_threshold, trading_session_duration
         trade_executed_flags.append(trade_executed)
         
         # Save data after each iteration for real time updates
-        save_trade_data(data_file) # maybe don't do this - real time probably overkill
+        save_trade_data(data_file)
         
         # Sleep to avoid overwhelming the system - shorter interval more responsive for real time
         time.sleep(1)

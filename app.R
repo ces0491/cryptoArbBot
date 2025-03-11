@@ -5,7 +5,7 @@ library(plotly)
 library(shinycssloaders)
 
 # Set Python path
-use_python("C:/Users/cesai_b8mratk/AppData/Local/Programs/Python/Python311/python.exe")
+# use_python("C:/Users/cesai_b8mratk/AppData/Local/Programs/Python/Python311/python.exe")
 
 # Define UI
 ui <- fluidPage(
