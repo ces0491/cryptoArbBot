@@ -9,6 +9,7 @@ library(shinycssloaders)
 
 # Define UI
 ui <- fluidPage(
+  
   titlePanel("Crypto Arbitrage Trading Bot Simulator"),
   
   tabsetPanel(
@@ -27,7 +28,7 @@ ui <- fluidPage(
                               min = 0.1, 
                               step = 0.1),
                  
-                 # Duration inputs side by side
+                 # Duration inputs inline
                  fluidRow(
                    column(width = 6,
                           numericInput(inputId = "trading_duration", 
@@ -117,15 +118,6 @@ server <- function(input, output, session) {
   # Create a timer that fires every second (1000 millis)
   observe({
     invalidateLater(1000, session)
-    
-    # Update countdown if trading is running
-    # if (trading_running() && countdown_time() > 0) {
-    #   countdown_time(countdown_time() - 1)
-    #   output$trading_status <- renderText("Trading...")
-    # } else if (trading_running() && countdown_time() <= 0) {
-    #   trading_running(FALSE)
-    #   output$trading_status <- renderText("Trading complete.")
-    # }
     
     # Try to load trade data if file exists and we're running
     if (nchar(current_files$data_file) > 0 && file.exists(current_files$data_file)) {
@@ -294,7 +286,11 @@ server <- function(input, output, session) {
     
     # Convert to plotly with custom tooltips
     ply <- ggplotly(p, tooltip = c("x", "y")) %>%
-      layout(hovermode = "closest")
+      layout(hovermode = "closest",
+             legend = list(x = 0, y = -0.35,
+             xanchor = 'left',
+             yanchor = 'bottom',
+             orientation = 'h'))
     
     # Customize tooltip
     for (i in 1:length(ply$x$data)) {
@@ -330,7 +326,7 @@ server <- function(input, output, session) {
     p <- ggplot(df, aes(x = Time, y = Cumulative_Profit)) +
       geom_line(color = "#28a745", size = 1.5) +
       labs(
-        title = "Cumulative Profit Over Time",
+        title = "Cumulative Profit",
         x = paste0("Time (", input$duration_unit, ")"),
         y = "Profit (USD)"
       ) +
@@ -356,7 +352,7 @@ server <- function(input, output, session) {
           df$Cumulative_Profit[j]
         )
       })
-      
+
       ply$x$data[[i]]$hoverinfo <- "text"
     }
     

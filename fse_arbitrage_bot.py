@@ -32,12 +32,12 @@ def format_binance_pair(trading_pair):
 # Modified random walk to attempt to replicate asset price movements over very short periods of just a few seconds
 class ShortTermPriceSimulator:
     def __init__(self, 
-                 starting_price = 100, 
-                 volatility = 0.05, 
-                 mean_reversion = 0.1,
-                 oscillation_amplitude = 0.3, 
-                 oscillation_period = 20, 
-                 divergence_factor = 0.2):
+                 starting_price = 10, 
+                 volatility = 0.06, 
+                 mean_reversion = 0.01,
+                 oscillation_amplitude = 0.05, 
+                 oscillation_period = 15, 
+                 divergence_factor = 0.1):
         self.current_price = starting_price
         self.base_price = starting_price
         self.volatility = volatility  # Exaggerated volatility for short timeframes
@@ -91,23 +91,23 @@ def get_price(exchange, trading_pair, simulate_data, simulators={}, last_prices=
         key = f"{exchange}_{trading_pair}"
         if key not in simulators:
             # Base price with slight variation
-            base_price = 100
+            base_price = 10
             
             # Different parameters for different exchanges
             if exchange == exchange1:  # First exchange
                 starting_price = base_price * random.uniform(0.98, 1.02)
                 volatility = random.uniform(0.02, 0.04)
                 mean_reversion = random.uniform(0.05, 0.1)
-                oscillation_amplitude = random.uniform(0.1, 0.2)
-                oscillation_period = random.randint(15, 25)  # Seconds
-                divergence_factor = random.uniform(0.1, 0.3)
+                oscillation_amplitude = random.uniform(0.01, 0.02)
+                oscillation_period = random.randint(5, 25)  # Seconds
+                divergence_factor = random.uniform(0.01, 0.03)
             else:  # Second exchange
                 starting_price = base_price * random.uniform(0.97, 1.03)  # Slightly more variance
                 volatility = random.uniform(0.03, 0.06)  # Higher volatility
-                mean_reversion = random.uniform(0.03, 0.08)  # Less mean reversion
-                oscillation_amplitude = random.uniform(0.15, 0.25)  # Larger oscillations
-                oscillation_period = random.randint(10, 20)  # Different cycle
-                divergence_factor = random.uniform(0.2, 0.4)  # Stronger divergence from exchange 1
+                mean_reversion = random.uniform(0.04, 0.08)  # Less mean reversion
+                oscillation_amplitude = random.uniform(0.015, 0.025)  # Larger oscillations
+                oscillation_period = random.randint(5, 25) 
+                divergence_factor = random.uniform(0.01, 0.04)  
                 
             simulators[key] = ShortTermPriceSimulator(
                 starting_price, 
