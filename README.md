@@ -3,6 +3,9 @@
 A simulator bot for arbitrage trading of cryptos.
 
 ## App
+Here: https://sheetsolved.shinyapps.io/cryptoArbitrageTradingBot/
+
+Or
 
 1.  **Install Docker Desktop:** (if not already installed)
     * Download and install Docker Desktop from [docker.com](https://www.docker.com/products/docker-desktop).
