@@ -5,7 +5,7 @@ account: sheetsolved
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 14212997
-bundleId: 9925516
+bundleId: 9956016
 url: https://sheetsolved.shinyapps.io/cryptoArbitrageTradingBot/
 version: 1
 asMultiple: FALSE
