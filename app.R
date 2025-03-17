@@ -4,9 +4,6 @@ library(ggplot2)
 library(plotly)
 library(shinycssloaders)
 
-# Set Python path
-# use_python("C:/Users/cesai_b8mratk/AppData/Local/Programs/Python/Python311/python.exe")
-
 # Define UI
 ui <- fluidPage(
   
@@ -99,6 +96,14 @@ ui <- fluidPage(
 # Define server logic
 server <- function(input, output, session) {
   
+  # Configure reticulate to use a virtual environment
+  venv_dir <- file.path(Sys.getenv("HOME"), ".virtualenvs", "shiny_env")
+  if (!reticulate::virtualenv_exists(venv_dir)) {
+    reticulate::virtualenv_create(venv_dir)
+    reticulate::virtualenv_install(venv_dir, requirements = "requirements.txt", ignore_installed = TRUE)
+  }
+  reticulate::use_virtualenv(venv_dir, required = TRUE)
+    
   # Reactive values
   trading_running <- reactiveVal(FALSE)
   countdown_time <- reactiveVal(0)
