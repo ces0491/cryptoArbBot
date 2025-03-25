@@ -7,6 +7,10 @@ Here: https://sheetsolved.shinyapps.io/cryptoArbitrageTradingBot/
 
 Or
 
+Here: https://cryptoarbbot.onrender.com/
+
+Or from a Docker image:
+
 1.  **Install Docker Desktop:** (if not already installed)
     * Download and install Docker Desktop from [docker.com](https://www.docker.com/products/docker-desktop).
 
